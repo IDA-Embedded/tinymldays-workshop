@@ -143,7 +143,7 @@ def export_model_to_tflite(model: keras.models.Model, x_train: np.ndarray, enabl
 
     # Export TensorFlow Lite model to C source files
     print("Exporting TensorFlow Lite model to C source file...")
-    write_model_c_file("../ESP-32/main/model.c", tflite_model)
+    write_model_c_file("../ESP32/main/model.c", tflite_model)
 
     # Save TensorFlow Lite model
     with open(f"gen/model.tflite", "wb") as f:
