@@ -1,0 +1,19 @@
+#ifndef MODEL_H
+#define MODEL_H
+
+#define SAMPLE_RATE 16000
+#define FRAME_SIZE 256
+#define FRAME_STRIDE 256
+#define WINDOW_SIZE 24
+#define SPECTRUM_SIZE 67
+#define SPECTRUM_MEAN 9.0
+#define SPECTRUM_STD 1.2
+#define INPUT_SIZE (WINDOW_SIZE * SPECTRUM_SIZE)
+#define INPUT_QUANT_SCALE 0.045515161007642746f
+#define INPUT_QUANT_ZERO_POINT 35
+#define OUTPUT_QUANT_SCALE 0.00390625f
+#define OUTPUT_QUANT_ZERO_POINT (-128)
+
+extern const unsigned char model_binary[];
+
+#endif

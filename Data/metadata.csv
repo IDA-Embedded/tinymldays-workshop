@@ -1,0 +1,37 @@
+Recording ID,Length (s),Bell events,Microphone,Distance,Background noise
+zoom_1,2073,46,Zoom recorder,Unknown,Workout room and music
+zoom_2,2009,44,Zoom recorder,Unknown,Workout room and music
+zoom_3,1853,41,Zoom recorder,Unknown,Workout room and music
+zoom_4,2340,51,Zoom recorder,Unknown,Workout room and music
+zoom_5,2039,45,Zoom recorder,Unknown,Workout room and music
+zoom_6,1619,36,Zoom recorder,Unknown,Workout room
+esp_music_30cm_1,30,15,ESP-EYE,30cm,Christmas music
+esp_music_30cm_2,30,15,ESP-EYE,30cm,Electronic music
+esp_music_30cm_3,30,15,ESP-EYE,30cm,Pop music
+esp_music_30cm_4,30,15,ESP-EYE,30cm,Pop music
+esp_music_30cm_5,30,15,ESP-EYE,30cm,Piano music
+esp_music_30cm_6,30,15,ESP-EYE,30cm,Piano music
+esp_music_30cm_7,30,15,ESP-EYE,30cm,Pop music
+esp_music_30cm_8,30,15,ESP-EYE,30cm,Christmas music
+esp_music_30cm_9,30,15,ESP-EYE,30cm,Electronic music
+esp_music_30cm_10,30,15,ESP-EYE,30cm,Electronic music
+esp_music_30cm_11,30,15,ESP-EYE,30cm,Electronic music
+esp_music_30cm_12,30,15,ESP-EYE,30cm,Electronic music
+esp_music_120cm_1,30,15,ESP-EYE,120cm,Christmas music
+esp_music_120cm_2,30,15,ESP-EYE,120cm,Pop music
+esp_music_120cm_3,30,15,ESP-EYE,120cm,Pop music
+esp_music_120cm_4,30,15,ESP-EYE,120cm,Electronic music
+esp_music_120cm_5,30,15,ESP-EYE,120cm,Electronic music
+esp_music_120cm_6,30,15,ESP-EYE,120cm,Pop music
+esp_music_120cm_7,30,15,ESP-EYE,120cm,Pop music
+esp_music_120cm_8,30,15,ESP-EYE,120cm,Electronic music
+esp_music_120cm_9,30,15,ESP-EYE,120cm,Christmas music
+esp_music_120cm_10,30,15,ESP-EYE,120cm,Christmas music
+esp_noise_30cm_1,30,15,ESP-EYE,30cm,Movie
+esp_noise_30cm_2,30,15,ESP-EYE,30cm,Movie
+esp_noise_30cm_3,30,15,ESP-EYE,30cm,Movie
+esp_radio_30cm_1,30,15,ESP-EYE,30cm,Male speech
+esp_radio_30cm_2,30,15,ESP-EYE,30cm,Male speech
+esp_radio_30cm_3,30,15,ESP-EYE,30cm,Female speech
+esp_radio_30cm_4,30,15,ESP-EYE,30cm,Mixed speech
+esp_radio_30cm_5,30,15,ESP-EYE,30cm,Mixed speech

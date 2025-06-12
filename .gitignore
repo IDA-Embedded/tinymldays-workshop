@@ -1,0 +1,12 @@
+__pycache__
+.python-version
+.vscode
+.idea
+*.keras
+*.tflite
+*.npy
+/ESP32/main/model.c
+/ESP32/sdkconfig
+/ESP32/build
+/ESP32/managed_components
+/ESP32/dependencies.lock
