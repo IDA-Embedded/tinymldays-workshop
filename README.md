@@ -108,7 +108,7 @@ Many IDEs, including VSCode and PyCharm, have extensions and built-in features f
     ```sh
         python -m venv .venv && .\.venv\Scripts\activate
     ```
-4. Upgrade pip and install dependencies:
+4. Install dependencies:
     ```sh
         pip install -r requirements.txt
     ```
