@@ -1,11 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#ifdef MODEL_VERSION_1
-  #include "model_v1.h"
-#else
-  #include "model.h"
-#endif
+#include "model.h"
 
 bool preprocess_init();
 void preprocess_put_audio(float* audio_frame);
