@@ -21,8 +21,8 @@ WINDOW_STRIDE = 4
 SPECTRUM_SIZE = 67  # We will only use the first 67 bins, which correspond to frequencies up to 4188 Hz
 
 # Mean and std of the spectrogram of all frames for normalization
-SPECTRUM_MEAN = 9.0
-SPECTRUM_STD = 1.2
+SPECTRUM_MEAN = 6026.0
+SPECTRUM_STD = 14892.0
 
 
 def preprocess_all(data_dir: str):

@@ -2,7 +2,7 @@ import os
 import keras
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Dense, Conv1D, Flatten, MaxPooling1D, Dropout
+from keras.layers import Dense, Conv1D, Flatten, MaxPooling1D
 
 from preprocess import preprocess_all, WINDOW_SIZE, SPECTRUM_SIZE
 from utils.export_tflite import write_model_c_file
@@ -13,19 +13,25 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 tf.get_logger().setLevel('ERROR')
 
+USE_CACHED_DATA = False  # Set to True to reuse cached data, False to force preprocess data
+
 
 def preprocess_and_load_data() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     # Preprocess data if not done already
-    if not os.path.exists('gen/x.npy') or not os.path.exists('gen/y.npy'):
+    if not USE_CACHED_DATA or not os.path.exists('gen/x.npy') or not os.path.exists('gen/y.npy'):
         preprocess_all('../Data/')
 
     # Load preprocessed data
     x = np.load('gen/x.npy')
     y = np.load('gen/y.npy')
 
+    # Print mean and std of the dataset
+    print('Mean of the dataset:', np.mean(x))
+    print('Standard deviation of the dataset:', np.std(x))
+
     # Plot the dataset as spectrogram of the entire dataset with labels underneath and as t-SNE projection
-    plot_dataset(x, y, block=False)
-    plot_tsne(x, y, block=False)
+    # plot_dataset(x, y, block=True)
+    # plot_tsne(x, y, block=True)
 
     # Shuffle the data
     indices = np.arange(len(x))
@@ -52,10 +58,8 @@ def train_model(x_train: np.ndarray, y_train: np.ndarray, x_val: np.ndarray, y_v
     model = Sequential()
     model.add(Conv1D(16, 5, activation='relu', input_shape=(WINDOW_SIZE, SPECTRUM_SIZE)))  # Output shape (22, 8)
     model.add(MaxPooling1D(2))  # Output shape (11, 8)
-    model.add(Dropout(0.1))
     model.add(Conv1D(16, 5, activation='relu'))  # Output shape (9, 8)
     model.add(MaxPooling1D(2))  # Output shape (4, 8)
-    model.add(Dropout(0.1))
     model.add(Flatten())  # Output shape (32)
     model.add(Dense(1, activation='sigmoid'))  # Output shape (1)
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss='binary_crossentropy', metrics=['accuracy'])
