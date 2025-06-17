@@ -2,6 +2,10 @@
 
 This repository contains data and code for a code review exercise that is part of the "Why your model fails in the field" workshop of TinyML Days in Aarhus, June 16-17, 2025 (https://events.au.dk/tinymldays). The application is a bell sound event detector with a small neural network trained in Python and deployed on an Espressif ESP-EYE. The application continuously samples the microphone of the ESP-EYE and uses the neural network to detect a bell sound in the audio stream.
 
+## Slides link
+
+https://docs.google.com/presentation/d/19277ulDf3RRV3LonRAghRD_gmoN443knS0zt_qnqLJM
+
 ## Code review exercise
 
 This is an example of a machine learning project where the evaluation results look very promising with over 99% accuracy, but it doesn't work very well when running it live on the ESP32. The objective of the exercise is to figure out why it doesn't work.
