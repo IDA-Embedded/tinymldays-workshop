@@ -13,6 +13,7 @@
 #include "audio.h"
 #include "preprocess.h"
 #include "model.h"
+#include "test.h"
 #define MODEL_BINARY model_binary
 
 // Compile time check preprocessor constants
@@ -30,7 +31,7 @@
 static const tflite::Model *model = nullptr;
 static tflite::MicroInterpreter *interpreter = nullptr;
 static uint8_t tensor_arena[TENSOR_ARENA_SIZE];
-static float float_features_buffer[INPUT_SIZE];
+float float_features_buffer[WINDOW_SIZE * SPECTRUM_SIZE];
 static TfLiteTensor *input = nullptr;
 static TfLiteTensor *output = nullptr;
 static const char *TAG_INF = "Inference";
@@ -77,7 +78,7 @@ void setup(void)
     // Print input and output tensor types and dimensions
     ESP_LOGI(TAG_INF, "Input tensor type: %s, shape: %d, %d, %d",
              TfLiteTypeGetName(input->type), input->dims->data[0], input->dims->data[1], input->dims->data[2]);
-    ESP_LOGI(TAG_INF, "Output tensor type: %s, shape: %d\n",
+    ESP_LOGI(TAG_INF, "Output tensor type: %s, shape: %d",
              TfLiteTypeGetName(output->type), output->dims->data[0]);
 
     // Initialize audio with gain 16.0 (found experimentally)
@@ -89,6 +90,45 @@ void setup(void)
         ESP_LOGE(TAG_INF, "Failed to initialize preprocessing!");
         abort();
     }
+
+    // Run test case
+    test_pipeline();
+}
+
+/**
+ *  @brief Quantize the feature matrix from float to int8.
+ *  @param features Pointer to the input feature matrix in float format.
+ *  @return Pointer to the output feature matrix in int8 format.
+ */
+int8_t* model_quantize(const float *features)
+{
+    // Quantize the feature matrix from float to int8
+    for (size_t i = 0; i < WINDOW_SIZE * SPECTRUM_SIZE; ++i)
+    {
+        float val_quant_float = roundf(features[i] / input->params.scale) + input->params.zero_point;
+        input->data.int8[i] = static_cast<int8_t>(val_quant_float);
+    }
+
+    // Return pointer to the quantized input tensor (used in test function)
+    return input->data.int8;
+}
+
+/**
+ * @brief Run inference on the model, obtain the prediction and dequantize to float.
+ * @param prediction Pointer to store the prediction result.
+ * @return True if inference was successful, false otherwise.
+ */
+bool model_predict(float *prediction)
+{
+    // Run inference
+    if (interpreter->Invoke() != kTfLiteOk)
+    {
+        return false;
+    }
+
+    // Dequantize the output from int8 to float
+    *prediction = (static_cast<float>(output->data.int8[0]) - output->params.zero_point) * output->params.scale;
+    return true;
 }
 
 /**
@@ -106,23 +146,17 @@ void loop(void)
     float amplitude;
     if (preprocess_get_features(float_features_buffer, &amplitude))
     {
-        // Quantize the input features from float to int8
-        for (size_t i = 0; i < INPUT_SIZE; ++i)
-        {
-            float val_quant_float = roundf(float_features_buffer[i] / INPUT_QUANT_SCALE) + INPUT_QUANT_ZERO_POINT;
-            input->data.int8[i] = static_cast<int8_t>(val_quant_float);
-        }
+        // Quantize the input features from float to int8 into the input tensor
+        model_quantize(float_features_buffer);
 
         // Run inference
-        if (interpreter->Invoke() != kTfLiteOk)
+        float prediction;
+        if (!model_predict(&prediction))
         {
             ESP_LOGE(TAG_INF, "Failed to invoke interpreter!");
         }
         else
         {
-            // Dequantize the output from int8 to float
-            float prediction = (static_cast<float>(output->data.int8[0]) - OUTPUT_QUANT_ZERO_POINT) * OUTPUT_QUANT_SCALE;
-
             // Print output
             ESP_LOGI(TAG_INF, "Amplitude: %5.0f, Prediction: %.2f", amplitude, prediction);
         }

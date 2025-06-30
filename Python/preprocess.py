@@ -17,12 +17,30 @@ FRAME_STRIDE = 256
 WINDOW_SIZE = 24
 WINDOW_STRIDE = 4
 
-# Number of frequency bins in the spectrogram
-SPECTRUM_SIZE = 67  # We will only use the first 67 bins, which correspond to frequencies up to 4188 Hz
+# Bin indexes for reducing spectrum by averaging some bins together into single bins
+# The resulting spectral frame has 28 bins as follows:
+# 0:     Average of original spectrum bins 0-9
+# 1-3:   Copy of original spectrum bins 9-11 (bell undertone)
+# 4:     Average of original spectrum bins 12-15
+# 5-7:   Copy of original spectrum bins 16-18 (bell base tone)
+# 8:     Average of original spectrum bins 19-22
+# 9-12:  Copy of original spectrum bins 23-26 (bell overtone 1)
+# 13:    Average of original spectrum bins 27-32
+# 14-16: Copy of original spectrum bins 33-35 (bell overtone 2)
+# 17:    Average of original spectrum bins 36-42
+# 18-20: Copy of original spectrum bins 43-45 (bell overtone 3)
+# 21:    Average of original spectrum bins 46-52
+# 22-24: Copy of original spectrum bins 53-55 (bell overtone 4)
+# 25:    Average of original spectrum bins 56-64
+# 26-27: Copy of original bins 65-66 (bell overtone 5)
+SPECTRUM_SRC = [0, 9, 12, 16, 19, 23, 27, 33, 36, 43, 46, 53, 56, 65, 67]
+SPECTRUM_DST = [0, 1,  4,  5,  8,  9, 13, 14, 17, 18, 21, 22, 25, 26, 28]
+SPECTRUM_TOP = SPECTRUM_SRC[-1]
+SPECTRUM_SIZE = SPECTRUM_DST[-1]
 
 # Mean and std of the spectrogram of all frames for normalization
-SPECTRUM_MEAN = 6026.0
-SPECTRUM_STD = 14892.0
+SPECTRUM_MEAN = 7.7
+SPECTRUM_STD = 1.5
 
 
 def preprocess_all(data_dir: str):
@@ -38,14 +56,63 @@ def preprocess_all(data_dir: str):
             x_files.append(x_file)
             y_files.append(y_file)
 
-    # Concatenate files into feature and label arrays
-    x = np.concatenate(x_files)  # Shape: (number of windows, WINDOW_SIZE, SPECTRUM_SIZE) = (number of windows, 24, 67)
-    y = np.concatenate(y_files)  # Shape: (number of windows, 1)
+    # Split files recording-wise into train, test and validation sets
+    # We want a 60%-20%-20% split, so 3 out of every 5 recordings go to training, 1 to validation
+    # and 1 to testing. Also we don't want to shuffle randomly, because we want to reproduce the
+    # same shuffle every time, so training results are comparable. For this reason, we take every
+    # recording with index i % 5 == 0, 2 or 4 for training, i % 5 == 1 for validation and
+    # i % 5 == 2 for testing.
+    x_files_train = []
+    y_files_train = []
+    x_files_val = []
+    y_files_val = []
+    x_files_test = []
+    y_files_test = []
+    for i in range(len(x_files)):
+        if i % 5 == 0 or i % 5 == 2 or i % 5 == 4:
+            x_files_train.append(x_files[i])
+            y_files_train.append(y_files[i])
+        elif i % 5 == 1:
+            x_files_val.append(x_files[i])
+            y_files_val.append(y_files[i])
+        elif i % 5 == 3:
+            x_files_test.append(x_files[i])
+            y_files_test.append(y_files[i])
 
     # Save to files
     os.makedirs('gen/', exist_ok=True)
-    np.save('gen/x.npy', x)
-    np.save('gen/y.npy', y)
+    np.save('gen/x_train.npy', np.concatenate(x_files_train))
+    np.save('gen/y_train.npy', np.concatenate(y_files_train))
+    np.save('gen/x_val.npy', np.concatenate(x_files_val))
+    np.save('gen/y_val.npy', np.concatenate(y_files_val))
+    np.save('gen/x_test.npy', np.concatenate(x_files_test))
+    np.save('gen/y_test.npy', np.concatenate(y_files_test))
+
+
+def preprocess_audio(sound_data: np.ndarray) -> np.ndarray:
+    """
+    Preprocess raw audio data into a spectrogram.
+    :param sound_data: Raw audio data as a numpy array.
+    :return: Preprocessed spectrogram as a numpy array.
+    """
+    # Preprocess data with hamming window and fourier transform
+    spectral_frames = []
+    for j in range(0, len(sound_data) - FRAME_SIZE, FRAME_STRIDE):
+        frame = sound_data[j:j + FRAME_SIZE]
+        frame = frame - np.average(frame)
+        frame = frame * np.hamming(FRAME_SIZE)
+        spectral_frame = np.abs(np.fft.rfft(frame))
+        spectral_frame = _reduce_spectrum(spectral_frame)
+        spectral_frame = np.log1p(np.abs(spectral_frame))
+        spectral_frames.append(spectral_frame)
+
+    # Convert to numpy array
+    spectral_frames = np.array(spectral_frames)
+
+    # Normalize data
+    spectral_frames = (spectral_frames - SPECTRUM_MEAN) / SPECTRUM_STD
+
+    return spectral_frames
 
 
 def _preprocess_recording(wav_file: str, label_file: str) -> tuple[np.ndarray, np.ndarray]:
@@ -54,21 +121,8 @@ def _preprocess_recording(wav_file: str, label_file: str) -> tuple[np.ndarray, n
     if sample_rate != SAMPLE_RATE:
         raise ValueError(f'Expected sample rate of {SAMPLE_RATE}, but got {sample_rate}')
 
-    # Preprocess data with hamming window and fourier transform
-    spectral_frames = []
-    for j in range(0, len(sound_data) - FRAME_SIZE, FRAME_STRIDE):
-        frame = sound_data[j:j + FRAME_SIZE]
-        frame = frame - np.average(frame)
-        frame = frame * np.hamming(FRAME_SIZE)
-        spectral_frame = np.abs(np.fft.rfft(frame))
-        spectral_frame = spectral_frame[:SPECTRUM_SIZE]
-        spectral_frames.append(spectral_frame)
-
-    # Convert to numpy array
-    spectral_frames = np.array(spectral_frames)
-
-    # Normalize data
-    spectral_frames = (spectral_frames - SPECTRUM_MEAN) / SPECTRUM_STD
+    # Preprocess audio
+    spectral_frames = preprocess_audio(sound_data)
 
     # Stack frames into windows
     windows = []
@@ -123,7 +177,44 @@ def _preprocess_recording(wav_file: str, label_file: str) -> tuple[np.ndarray, n
     x = x[~start_or_end_overlap]
     y = y[~start_or_end_overlap]
 
+    # If the data is unbalanced, remove some negative windows
+    num_positives = np.sum(y)
+    num_negatives = len(y) - num_positives
+    if int(num_negatives / num_positives) >= 8:
+        # Go through the data, and every time we see a negative window, we keep 1 out of ratio negative windows
+        # Ratio is chosen such that the data is balanced 4/1, which is acceptable while we're still not throwing
+        # away too much data. For example, if there are 50 negative windows for every positive window, then we
+        # keep every 12th negative window.
+        ratio = int(num_negatives / num_positives) // 4
+        keep = np.zeros(len(y), dtype=bool)
+        j = 0
+        for i in range(len(y)):
+            if y[i] == 0:
+                if j % ratio == 0:
+                    keep[i] = True
+                j += 1
+            else:
+                keep[i] = True
+        x = x[keep]
+        y = y[keep]
+
     return x, y
+
+
+def _reduce_spectrum(spectral_frame: np.ndarray) -> np.ndarray:
+    # The incoming spectral frame has 256 bins. We want to keep only the lowest 67 bins,
+    # corresponding to everything below 4188 Hz. Moreover, to reduce dimensionality further,
+    # we collapse some bins by computing their average into single bins, because they don't
+    # contain any bell frequencies, so we don't want to learn any patterns from them.
+    reduced_spectrum = np.zeros(SPECTRUM_SIZE)
+    for i in range(0, len(SPECTRUM_SRC) - 1, 2):
+        # Average the bins that we want to reduce
+        reduced_spectrum[SPECTRUM_DST[i]] = np.average(spectral_frame[SPECTRUM_SRC[i]:SPECTRUM_SRC[i + 1]])
+
+        # Copy the bins that we want to keep
+        reduced_spectrum[SPECTRUM_DST[i + 1]:SPECTRUM_DST[i + 2]] = spectral_frame[SPECTRUM_SRC[i + 1]:SPECTRUM_SRC[i + 2]]
+
+    return reduced_spectrum
 
 
 if __name__ == '__main__':

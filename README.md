@@ -1,32 +1,52 @@
-# Workshop Code Review Exercise: Bell Sound Detector for ESP-EYE
+# Workshop Code Review Exercise Solution: Bell Sound Detector for ESP-EYE
 
-This repository contains data and code for a code review exercise that is part of the "Why your model fails in the field" workshop of TinyML Days in Aarhus, June 16-17, 2025 (https://events.au.dk/tinymldays). The application is a bell sound event detector with a small neural network trained in Python and deployed on an Espressif ESP-EYE. The application continuously samples the microphone of the ESP-EYE and uses the neural network to detect a bell sound in the audio stream.
+This branch of the repository contains the SOLUTION for a code review exercise that is part of the "Why your model fails in the field" workshop of TinyML Days in Aarhus, June 16-17, 2025 (https://events.au.dk/tinymldays). The application is a bell sound event detector with a small neural network trained in Python and deployed on an Espressif ESP-EYE. The application continuously samples the microphone of the ESP-EYE and uses the neural network to detect a bell sound in the audio stream.
 
 ## Slides link
 
 https://docs.google.com/presentation/d/19277ulDf3RRV3LonRAghRD_gmoN443knS0zt_qnqLJM
 
-## Code review exercise
+## Exercise solution
 
-This is an example of a machine learning project where the evaluation results look very promising with over 99% accuracy, but it doesn't work very well when running it live on the ESP32. The objective of the exercise is to figure out why it doesn't work.
+To read about the exercise, please switch to the `main` branch.
 
-In the workshop, we explore common reasons why a model performs well in desktop evaluation but fails in live testing:
+This branch provides code corrections that address most of the shortcomings in the `main` branch, and the application in this branch can be expected to work much better. The shortcomings of the `main` branch and the improvements in this branch include:
 
-* Data quality problems:
-  - Representation gaps
-  - Conditional imbalance
-  - Label noise, sensor errors, outliers and label ambiguity
-* Shortcut learning:
-  - Lack of strong predictors
-  - Inadequate preprocessing
-  - Test set contamination
-* Pipeline bugs:
-  - Preprocessor implementation bugs
-  - Inconsistent sensor data handling
-  - Processor overload and race conditions
-  - Quantization mismatch
+### Poor data quality
 
-Several of these problems are present in the data and code in this repository, and the task is to review the data and the code, indentify the problems and suggest improvements.
+* Representation gaps: Missing longer mic distance with ESP32 microphone
+    * TODO: Add more such samples
+* Representation gaps: Too few difficult negative examples, e.g. metallic exercise equipment noise and voice at the same frequency as the bell
+    * TODO: Add more such samples
+* Too many redundant "Workout room and music" negative examples
+    * Addressed in `Python/preprocess.py` by removing negative windows based on the ratio between positive and negative examples at the end of `_preprocess_recording()`.
+
+### Shortcut learning
+
+* Inadequate preprocessing: Unnecessary frequency resolution (67 bins) for such a simple sound with known frequency profile
+    * Addressed in `Python/preprocess.py` by reducing the spectrum to 28 bins, focusing on the known bell sound frequencies and collapsing the other frequencies into combined bins. Implemented with the definitions of `SPECTRUM_SRC` and `SPECTRUM_DST` in the beginning of the file and the `_reduce_spectrum()` function. The reduction parameters are exported to a C header file in `export_model_to_tflite()` in `Python/main.py`.
+* Inadequate preprocessing: Uneven feature value distribution
+    * Addressed in `Python/preprocess.py` by applying the logarithm (`log1p`) of the FFT output in `_preprocess_recording()`.
+* Test set contamination: Random splitting of preprocessed windows
+    * Addressed in `Python/preprocess.py` by splitting the data recording-wise in `preprocess_all()` and in `Python/main.py` by shuffling only the training data *after* splitting.
+* Lack of model regularization
+    * Addressed in `Python/main.py` by adding `Dropout` layers in `train_model()`.
+
+### Pipeline bugs
+
+* No validation of quantized model
+    * Addressed in `Python/main.py` with the `evaluate_tflite_model()` function.
+* No regression tests with test vectors
+    * Addressed with the following files:
+       * `Python/generate_test_case.py`, which generates `Python/gen/test_case.json` and `ESP32/main/test_case.h`.
+       * `Python/test_pipeline.py`, which runs the training pipeline test case.
+       * `ESP32/main/test.cc` and `ESP32/main/test.h`, which runs the inference pipeline test case on the device.
+* No audio input sanity checks in the embedded code
+    * TODO: Add sanity checks
+* No overload check in the embedded code
+    * TODO: Add overload checks
+* Hard-coded quantization parameters
+    * Addressed in `ESP32/main.cc` by using the quantization parameters embedded in the model binary.
 
 ## Repository structure
 
@@ -37,7 +57,7 @@ The repository has two projects:
 
 The repository root also contains the sound file `ding.wav`, which is the bell sound to be detected.
 
-**NOTE**: You must run the Python project before you can build the ESP32 project, because the generated ML model file (`model.c`) is not included in the repository.
+**NOTE**: You must run the Python project before you can build the ESP32 project, because the generated ML model files and the test case (`model.c`, `model.h` and `test_case.h`) are not included in the repository.
 
 ### Training data
 
@@ -50,7 +70,7 @@ The `Data` folder also contains a CSV file `metadata.csv` with metadata about ea
 
 ## Python and ESP32 setup (optional)
 
-You don't need to run the training and build the microcontroller project - it's fully possible to reveal the problems only by inspecting the data and the code. However, if you do want to train and build, you need to set up a Python environment as well as the ESP32 build tools on your computer.
+You don't need to run the training and build the microcontroller project - it's fully possible to understand the solution only by inspecting the data and the code. However, if you do want to train and build, you need to set up a Python environment as well as the ESP32 build tools on your computer.
 
 Many IDEs, including VSCode and PyCharm, have extensions and built-in features for installing both Python and ESP32 build tools. If you use any of these IDEs, it's recommended to use these for installation. The instructions below can be used for a minimal IDE-independent installation to be run via a terminal or command prompt.
 
@@ -125,7 +145,7 @@ Many IDEs, including VSCode and PyCharm, have extensions and built-in features f
 
 1. Install ESP-IDF according to the following instructions: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/windows-setup.html
     - When asked for an ESP-IDF installation directory, choose `C:\Users\<your-user-name>\esp\esp-idf`.
-    - When asked for a tools installation directory, choose `C:\Users\<your-user-name>\.espressif`
+    - When asked for a tools installation directory, choose `C:\Users\<your-user-name>\.espressif`.
     - When asked for components, choose at least:
         - Frameworks
         - Command Prompt

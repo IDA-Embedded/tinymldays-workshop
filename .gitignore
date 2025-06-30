@@ -6,7 +6,10 @@ __pycache__
 *.tflite
 *.npy
 /ESP32/main/model.c
+/ESP32/main/model.h
+/ESP32/main/test_case.h
 /ESP32/sdkconfig
 /ESP32/build
 /ESP32/managed_components
 /ESP32/dependencies.lock
+/Python/gen/test_case.json

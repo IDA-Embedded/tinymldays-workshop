@@ -6,3 +6,4 @@ pandas
 scipy
 tflite
 scikit-learn
+pytest

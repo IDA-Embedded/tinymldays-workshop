@@ -3,7 +3,7 @@
 #include "esp_log.h"
 
 static float feature_buffer[WINDOW_SIZE * SPECTRUM_SIZE];
-static float spectral_frame[SPECTRUM_SIZE];
+static float spectral_frame[SPECTRUM_TOP];
 static float *feature_frame = feature_buffer;
 static kiss_fft_float::kiss_fftr_cfg kfft_cfg;
 static float max = 0.0;
@@ -56,7 +56,8 @@ void preprocess_put_audio(float *audio_frame)
     // frame = frame - np.average(frame)
     // frame = frame * np.hamming(FRAME_SIZE)
     // spectral_frame = np.abs(np.fft.rfft(frame))
-    // spectral_frame = spectral_frame[:SPECTRUM_SIZE]
+    // spectral_frame = reduce_spectrum(spectral_frame)
+    // spectral_frame = np.log1p(np.abs(spectral_frame))
     // spectral_frame = (spectral_frame - SPECTRUM_MEAN) / SPECTRUM_STD
 
     // Compute mean and keep track of max
@@ -81,15 +82,36 @@ void preprocess_put_audio(float *audio_frame)
     kiss_fft_float::kiss_fftr(kfft_cfg, audio_frame, spectrum);
 
     // Compute abs(spectrum)
-    for (int i = 0; i < SPECTRUM_SIZE; i++)
+    for (int i = 0; i < SPECTRUM_TOP; i++)
     {
         spectral_frame[i] = sqrt(spectrum[i].r * spectrum[i].r + spectrum[i].i * spectrum[i].i);
     }
 
-    // Compute (abs(spectrum) - SPECTRUM_MEAN) / SPECTRUM_STD
+    // Reduce the spectrum to 28 bins by averaging and copying bins
+    for (int i = 0; i < sizeof(SPECTRUM_SRC) / sizeof(SPECTRUM_SRC[0]) - 1; i += 2)
+    {
+        // Average the bins that we want to collapse
+        // spectral_frame[SPECTRUM_DST[i]] = np.average(spectral_frame[SPECTRUM_SRC[i]:SPECTRUM_SRC[i + 1]])
+        float value = 0.0;
+        for (int j = SPECTRUM_SRC[i]; j < SPECTRUM_SRC[i + 1]; j++)
+        {
+            value += spectral_frame[j];
+        }
+        spectral_frame[SPECTRUM_DST[i]] = value / (SPECTRUM_SRC[i + 1] - SPECTRUM_SRC[i]);
+
+        // Copy the bins that we want to keep
+        // spectrum_parts[SPECTRUM_DST[i + 1]:SPECTRUM_DST[i + 2]] = spectral_frame[SPECTRUM_SRC[i + 1]:SPECTRUM_SRC[i + 2]]
+        for (int j = 0; j < SPECTRUM_SRC[i + 2] - SPECTRUM_SRC[i + 1]; j++)
+        {
+            spectral_frame[SPECTRUM_DST[i + 1] + j] = spectral_frame[SPECTRUM_SRC[i + 1] + j];
+        }
+    }
+
+    // Compute (log(1 + abs(spectrum)) - SPECRUM_MEAN) / SPECTRUM_STD
     for (int i = 0; i < SPECTRUM_SIZE; i++)
     {
-        float normalized = (spectral_frame[i] - SPECTRUM_MEAN) / SPECTRUM_STD;
+        float unnormalized = log1p(spectral_frame[i]);
+        float normalized = (unnormalized - SPECTRUM_MEAN) / SPECTRUM_STD;
         *feature_frame++ = normalized;
     }
 
