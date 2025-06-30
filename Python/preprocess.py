@@ -39,7 +39,7 @@ def preprocess_all(data_dir: str):
             y_files.append(y_file)
 
     # Concatenate files into feature and label arrays
-    x = np.concatenate(x_files)  # Shape: (number of windows, WINDOW_SIZE, SPECTRUM_SIZE) = (number of windows, 24, 28)
+    x = np.concatenate(x_files)  # Shape: (number of windows, WINDOW_SIZE, SPECTRUM_SIZE) = (number of windows, 24, 67)
     y = np.concatenate(y_files)  # Shape: (number of windows, 1)
 
     # Save to files
