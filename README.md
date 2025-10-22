@@ -8,6 +8,8 @@ https://docs.google.com/presentation/d/19277ulDf3RRV3LonRAghRD_gmoN443knS0zt_qnq
 
 ## Code review exercise
 
+To see the solution for this exercise, please switch to the `solution` branch.
+
 This is an example of a machine learning project where the evaluation results look very promising with over 99% accuracy, but it doesn't work very well when running it live on the ESP32. The objective of the exercise is to figure out why it doesn't work.
 
 In the workshop, we explore common reasons why a model performs well in desktop evaluation but fails in live testing:
@@ -26,7 +28,7 @@ In the workshop, we explore common reasons why a model performs well in desktop 
   - Processor overload and race conditions
   - Quantization mismatch
 
-Several of these problems are present in the data and code in this repository, and the task is to review the data and the code, indentify the problems and suggest improvements.
+Several of these problems are present in the data and code in this repository, and the task is to review the data and the code, identify the problems and suggest improvements.
 
 ## Repository structure
 
